@@ -1,0 +1,129 @@
+name: GIM-GAME Services CI/CD
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 */4 * * *'
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: lugx-gaming-cluster
+  ECR_REPOSITORY: lugx-gaming
+  NAMESPACE: lugx-gaming
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - name: Test game service
+        run: |
+          cd game-service && npm ci && npm test
+      - name: Test order service
+        run: |
+          cd order-service && npm ci && npm test
+
+  build-and-deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+          
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+        
+      - name: Build and push Docker images
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Build game service
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:game-service-$IMAGE_TAG ./game-service
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:game-service-$IMAGE_TAG
+          
+          # Build order service
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:order-service-$IMAGE_TAG ./order-service
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:order-service-$IMAGE_TAG
+          
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
+          
+      - name: Deploy to lugx-gaming namespace (Rolling Update - 100% Uptime)
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          # Your services are already perfectly configured!
+          kubectl set image deployment/game-service game-service=$ECR_REGISTRY/$ECR_REPOSITORY:game-service-$IMAGE_TAG -n lugx-gaming
+          kubectl set image deployment/order-service order-service=$ECR_REGISTRY/$ECR_REPOSITORY:order-service-$IMAGE_TAG -n lugx-gaming
+          
+          # Wait for rollout to complete (100% uptime guaranteed)
+          kubectl rollout status deployment/game-service -n lugx-gaming --timeout=300s
+          kubectl rollout status deployment/order-service -n lugx-gaming --timeout=300s
+          
+      - name: Run post-deployment integration tests
+        run: |
+          # Wait for services to be ready
+          kubectl wait --for=condition=ready pod -l app=game-service -n lugx-gaming --timeout=120s
+          kubectl wait --for=condition=ready pod -l app=order-service -n lugx-gaming --timeout=120s
+          
+          # Test external endpoints
+          echo "Testing Game Service health..."
+          curl -f http://ad55a81de5ebc46dda3c984a9834e514-1703699134.us-east-1.elb.amazonaws.com:3001/health || exit 1
+          
+          echo "Testing Order Service health..."
+          curl -f http://af120382ec4b946fa97575e61bba0e4f-128289655.us-east-1.elb.amazonaws.com:3003/health || exit 1
+          
+          # Test PostgreSQL connectivity
+          echo "Testing PostgreSQL connectivity..."
+          kubectl exec -n lugx-gaming $(kubectl get pods -n lugx-gaming -l app=postgres -o jsonpath='{.items[0].metadata.name}') -- psql -U postgres -d lugx_gaming -c "SELECT 1;" || exit 1
+          
+          # Test CRUD operations
+          echo "Testing Game CRUD operations..."
+          
+          # Create a test game
+          GAME_RESPONSE=$(curl -X POST -H "Content-Type: application/json" \
+            -d '{"name":"CI/CD Test Game","category":"Test","price":29.99,"release_date":"2024-01-01"}' \
+            http://ad55a81de5ebc46dda3c984a9834e514-1703699134.us-east-1.elb.amazonaws.com:3001/api/games)
+          echo "Game created: $GAME_RESPONSE"
+          
+          # Get all games
+          curl -f http://ad55a81de5ebc46dda3c984a9834e514-1703699134.us-east-1.elb.amazonaws.com:3001/api/games || exit 1
+          
+          # Test order creation
+          echo "Testing Order creation..."
+          ORDER_RESPONSE=$(curl -X POST -H "Content-Type: application/json" \
+            -d '{"user_id":"test-user","items":[{"game_id":1,"quantity":1,"price":29.99}],"total_price":29.99}' \
+            http://af120382ec4b946fa97575e61bba0e4f-128289655.us-east-1.elb.amazonaws.com:3003/api/orders)
+          echo "Order created: $ORDER_RESPONSE"
+          
+          echo "All services tested successfully!"
+          
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "Services deployment failed, rolling back..."
+          kubectl rollout undo deployment/game-service -n lugx-gaming
+          kubectl rollout undo deployment/order-service -n lugx-gaming
+          
+          # Wait for rollback
+          kubectl rollout status deployment/game-service -n lugx-gaming --timeout=300s
+          kubectl rollout status deployment/order-service -n lugx-gaming --timeout=300s

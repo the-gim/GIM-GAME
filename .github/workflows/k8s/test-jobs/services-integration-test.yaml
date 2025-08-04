@@ -1,0 +1,74 @@
+# k8s/test-jobs/services-integration-test.yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: services-integration-test
+  namespace: lugx-gaming
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: integration-test
+        image: node:18-alpine
+        command: ["sh", "-c"]
+        args:
+        - |
+          npm install -g axios jest
+          cat > /tmp/services-test.js << 'EOF'
+          const axios = require('axios');
+          
+          describe('Services Integration Tests', () => {
+            test('Game service health check', async () => {
+              const response = await axios.get('http://game-service.lugx-gaming.svc.cluster.local:3001/health');
+              expect(response.status).toBe(200);
+              expect(response.data.status).toBe('healthy');
+            });
+            
+            test('Order service health check', async () => {
+              const response = await axios.get('http://order-service.lugx-gaming.svc.cluster.local:3003/health');
+              expect(response.status).toBe(200);
+              expect(response.data.status).toBe('healthy');
+            });
+            
+            test('Game CRUD operations', async () => {
+              const gameData = {
+                name: 'Test Game',
+                category: 'Test',
+                release_date: '2024-01-01',
+                price: 29.99
+              };
+              
+              // Create game
+              const createResponse = await axios.post(
+                'http://game-service.lugx-gaming.svc.cluster.local:3001/api/games',
+                gameData
+              );
+              expect(createResponse.status).toBe(201);
+              
+              // Get games
+              const getResponse = await axios.get(
+                'http://game-service.lugx-gaming.svc.cluster.local:3001/api/games'
+              );
+              expect(getResponse.status).toBe(200);
+              expect(Array.isArray(getResponse.data)).toBe(true);
+            });
+            
+            test('Order creation', async () => {
+              const orderData = {
+                user_id: 'test-user',
+                items: [{ game_id: 1, quantity: 1, price: 59.99 }],
+                total_price: 59.99
+              };
+              
+              const response = await axios.post(
+                'http://order-service.lugx-gaming.svc.cluster.local:3003/api/orders',
+                orderData
+              );
+              expect(response.status).toBe(201);
+            });
+          });
+          EOF
+          
+          cd /tmp && npm test services-test.js
+      backoffLimit: 2
