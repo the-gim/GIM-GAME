@@ -63,7 +63,7 @@ app.get('/games/:id', async (req, res) => {
 });
 
 // Create new game
-//comment
+//commentt
 app.post('/games', async (req, res) => {
   try {
     const { name, category, release_date, price } = req.body;
