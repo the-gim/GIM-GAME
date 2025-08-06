@@ -7,21 +7,21 @@
 	},
 	"item": [
 		{
-			"name": "http://af120382ec4b946fa97575e61bba0e4f-128289655.us-east-1.elb.amazonaws.com:3003/orders",
+			"name": "order-service",
 			"request": {
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://af120382ec4b946fa97575e61bba0e4f-128289655.us-east-1.elb.amazonaws.com:3003/orders",
+					"raw": "http://a27a28b9023394826a9a2f3ca65e61ee-992681568.us-east-1.elb.amazonaws.com:3002/orders",
 					"protocol": "http",
 					"host": [
-						"af120382ec4b946fa97575e61bba0e4f-128289655",
+						"a27a28b9023394826a9a2f3ca65e61ee-992681568",
 						"us-east-1",
 						"elb",
 						"amazonaws",
 						"com"
 					],
-					"port": "3003",
+					"port": "3002",
 					"path": [
 						"orders"
 					]

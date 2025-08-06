@@ -7,15 +7,15 @@
 	},
 	"item": [
 		{
-			"name": "http://ad55a81de5ebc46dda3c984a9834e514-1703699134.us-east-1.elb.amazonaws.com/games",
+			"name": "game-service",
 			"request": {
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://ad55a81de5ebc46dda3c984a9834e514-1703699134.us-east-1.elb.amazonaws.com:3001/games",
+					"raw": "http://aa599c920ef5c4c38aaf0b0deac12737-1490142536.us-east-1.elb.amazonaws.com:3001/games",
 					"protocol": "http",
 					"host": [
-						"ad55a81de5ebc46dda3c984a9834e514-1703699134",
+						"aa599c920ef5c4c38aaf0b0deac12737-1490142536",
 						"us-east-1",
 						"elb",
 						"amazonaws",
