@@ -1,0 +1,33 @@
+{
+	"info": {
+		"_postman_id": "e700677a-a130-446f-b9c3-c921406b108f",
+		"name": "order",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "40975715"
+	},
+	"item": [
+		{
+			"name": "http://af120382ec4b946fa97575e61bba0e4f-128289655.us-east-1.elb.amazonaws.com:3003/orders",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://af120382ec4b946fa97575e61bba0e4f-128289655.us-east-1.elb.amazonaws.com:3003/orders",
+					"protocol": "http",
+					"host": [
+						"af120382ec4b946fa97575e61bba0e4f-128289655",
+						"us-east-1",
+						"elb",
+						"amazonaws",
+						"com"
+					],
+					"port": "3003",
+					"path": [
+						"orders"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
