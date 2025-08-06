@@ -26,11 +26,11 @@ apiVersion: v1
 kind: Service
 metadata:
   name: order-service
-  namespace: lugx-gaming
 spec:
-  selector:
-    app: order-service
+  type: LoadBalancer
   ports:
   - port: 80
-    targetPort: 3002
-  type: LoadBalancer  # So you can access from outside
+    targetPort: 3003  # <-- ADD THIS LINE
+    nodePort: 30301
+  selector:
+    app: order-service
