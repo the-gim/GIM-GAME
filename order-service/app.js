@@ -12,7 +12,8 @@ const pool = new Pool({
   port: 5432,
   database: 'lugx_gaming',
   user: 'lugx_user',
-  password: 'lugx_password',
+  // This reads the password from the environment variable set by Kubernetes
+  password: process.env.POSTGRES_PASSWORD,
 });
 
 // Create tables on startup

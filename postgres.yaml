@@ -1,3 +1,5 @@
+## postgres.yaml (Corrected)
+
 apiVersion: v1
 kind: Secret
 metadata:
@@ -5,7 +7,8 @@ metadata:
   namespace: lugx-gaming
 type: Opaque
 data:
-  password: bHVneF9wYXNzd29yZA==  # base64 of "lugx_password"
+  # The base64 encoded version of "lugx_password"
+  postgres-password: bHVneF9wYXNzd29yZA==
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -14,11 +17,13 @@ metadata:
   namespace: lugx-gaming
 spec:
   replicas: 1
+  # This selector was missing. It tells the Deployment which pods to manage.
   selector:
     matchLabels:
       app: postgres
   template:
     metadata:
+      # These labels were missing. They are applied to the pods.
       labels:
         app: postgres
     spec:
@@ -31,7 +36,10 @@ spec:
         - name: POSTGRES_USER
           value: lugx_user
         - name: POSTGRES_PASSWORD
-          value: lugx_password
+          valueFrom:
+            secretKeyRef:
+              name: postgres-secret
+              key: postgres-password
         ports:
         - containerPort: 5432
 ---
