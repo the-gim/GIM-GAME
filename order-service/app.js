@@ -143,7 +143,7 @@ app.put('/orders/:id/status', async (req, res) => {
 });
 
 // Start server
-const PORT = 3002;
+const PORT = 3003;
 initDB().then(() => {
   app.listen(PORT, () => {
     console.log(`Order Service running on port ${PORT}`);
